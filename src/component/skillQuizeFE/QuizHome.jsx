@@ -1,22 +1,18 @@
-import axios from "axios";
-import { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext } from "react";
+// 1. CHANGE: Import 'api' from our new config file
+import api from '../../api/axiosConfig';
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { ThemeContext } from "../../context/ThemeContext";
 
 function QuizHome() {
-    // --- Component State and Context ---
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { theme } = useContext(ThemeContext);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
-    // --- State for New Features ---
-    const [questionCount, setQuestionCount] = useState(5); // User can now set this
-    const [hints, setHints] = useState({}); // Stores hints for each question, e.g., { 0: "This is a hint" }
-    const [usedHint, setUsedHint] = useState({}); // Tracks if a hint was used, e.g., { 0: true }
-    const [loadingHint, setLoadingHint] = useState(null); // Tracks which hint is currently loading
-
-    // --- Existing State ---
+    const [questionCount, setQuestionCount] = useState(5);
+    const [hints, setHints] = useState({});
+    const [usedHint, setUsedHint] = useState({});
+    const [loadingHint, setLoadingHint] = useState(null);
     const [topic, setTopic] = useState(searchParams.get('topic') || "JavaScript");
     const [level, setLevel] = useState("easy");
     const [questions, setQuestions] = useState([]);
@@ -26,7 +22,6 @@ function QuizHome() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // --- Effects for Responsiveness and Auto-start ---
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
         window.addEventListener('resize', handleResize);
@@ -40,16 +35,14 @@ function QuizHome() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchParams]);
 
-    // --- Event Handlers & Logic ---
     const handleFetch = async () => {
         setLoading(true);
         setError(null);
         setQuestions([]);
         try {
-            // Send the new questionCount to the backend
-            const res = await axios.post("http://localhost:5000/generate-quiz", { topic, level, questionCount });
+            // 2. CHANGE: Use 'api.post' for the request
+            const res = await api.post("/generate-quiz", { topic, level, questionCount });
             setQuestions(res.data.questions);
-            // Reset all states for the new quiz
             setSelectedAnswers({});
             setSubmitted(false);
             setScore(0);
@@ -62,24 +55,22 @@ function QuizHome() {
         }
     };
 
-    // --- NEW: Fetches a hint for a specific question ---
     const handleGetHint = async (qIndex) => {
-        setLoadingHint(qIndex); // Show loading state for this specific hint button
+        setLoadingHint(qIndex);
         try {
             const currentQuestion = questions[qIndex];
-            const res = await axios.post("http://localhost:5000/generate-hint", {
+            // 3. CHANGE: Use 'api.post' for the request
+            const res = await api.post("/generate-hint", {
                 question: currentQuestion.question,
                 options: currentQuestion.options
             });
-            // Store the fetched hint
             setHints(prev => ({ ...prev, [qIndex]: res.data.hint }));
-            // Mark that a hint was used for this question
             setUsedHint(prev => ({ ...prev, [qIndex]: true }));
         } catch (err) {
             console.error("Failed to get hint:", err);
             setHints(prev => ({ ...prev, [qIndex]: "Could not load hint." }));
         } finally {
-            setLoadingHint(null); // Hide loading state
+            setLoadingHint(null);
         }
     };
 
@@ -87,7 +78,6 @@ function QuizHome() {
         setSelectedAnswers(prev => ({ ...prev, [qIndex]: option }));
     };
 
-    // --- UPDATED: Implements the new complex scoring logic ---
     const handleSubmit = async () => {
         let newScore = 0;
         questions.forEach((q, idx) => {
@@ -96,23 +86,21 @@ function QuizHome() {
             const hintWasUsed = usedHint[idx];
 
             if (userAnswer === correctAnswer) {
-                // Correct answer
                 newScore += hintWasUsed ? 0.5 : 1;
             } else if (userAnswer !== undefined && userAnswer !== correctAnswer) {
-                // Incorrect answer
                 newScore += hintWasUsed ? -1 : 0;
             }
-            // If no answer was selected, score remains 0 for that question.
         });
 
         setScore(newScore);
         setSubmitted(true);
 
         try {
-            await axios.post("http://localhost:5000/save-score", {
+            // 4. CHANGE: Use 'api.post' for the request
+            await api.post("/save-score", {
                 topic: topic,
                 score: newScore,
-                total: questions.length // We still track the total questions for context
+                total: questions.length
             });
         } catch (err) {
             console.error("Failed to save score:", err);
@@ -121,53 +109,13 @@ function QuizHome() {
     
     const handleGoToDashboard = () => navigate('/dashboard');
 
-    // --- Dynamic and Themed Styles ---
+    // (The styles object and JSX render are the same)
     const styles = {
-        container: {
-            padding: isMobile ? '15px' : '30px',
-            maxWidth: '800px',
-            margin: '20px auto',
-            backgroundColor: theme === 'dark' ? '#212529' : '#f8f-fa',
-            border: `1px solid ${theme === 'dark' ? '#495057' : '#dee2e6'}`,
-            borderRadius: '8px'
-        },
-        input: {
-            padding: '10px',
-            backgroundColor: theme === 'dark' ? '#343a40' : '#fff',
-            color: theme === 'dark' ? '#f8f9fa' : '#212529',
-            border: `1px solid ${theme === 'dark' ? '#495057' : '#ced4da'}`,
-            width: '100%',
-            boxSizing: 'border-box',
-            borderRadius: '5px'
-        },
-        button: {
-            marginTop: '10px',
-            padding: '10px 20px',
-            cursor: 'pointer',
-            border: 'none',
-            borderRadius: '5px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            width: '100%'
-        },
-        hintButton: {
-            padding: '4px 8px',
-            fontSize: '0.8rem',
-            backgroundColor: '#6c757d',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer',
-            marginLeft: '10px'
-        },
-        disclaimer: {
-            backgroundColor: theme === 'dark' ? 'rgba(255, 193, 7, 0.1)' : 'rgba(255, 193, 7, 0.2)',
-            borderLeft: `4px solid #ffc107`,
-            padding: '10px',
-            margin: '20px 0',
-            fontSize: '0.9rem'
-        },
-        // ... other styles are the same
+        container: { padding: isMobile ? '15px' : '30px', maxWidth: '800px', margin: '20px auto', backgroundColor: theme === 'dark' ? '#212529' : '#f8f9fa', border: `1px solid ${theme === 'dark' ? '#495057' : '#dee2e6'}`, borderRadius: '8px' },
+        input: { padding: '10px', backgroundColor: theme === 'dark' ? '#343a40' : '#fff', color: theme === 'dark' ? '#f8f9fa' : '#212529', border: `1px solid ${theme === 'dark' ? '#495057' : '#ced4da'}`, width: '100%', boxSizing: 'border-box', borderRadius: '5px' },
+        button: { marginTop: '10px', padding: '10px 20px', cursor: 'pointer', border: 'none', borderRadius: '5px', backgroundColor: '#007bff', color: 'white', width: '100%' },
+        hintButton: { padding: '4px 8px', fontSize: '0.8rem', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', marginLeft: '10px' },
+        disclaimer: { backgroundColor: theme === 'dark' ? 'rgba(255, 193, 7, 0.1)' : 'rgba(255, 193, 7, 0.2)', borderLeft: `4px solid #ffc107`, padding: '10px', margin: '20px 0', fontSize: '0.9rem' },
         questionBlock: { marginBottom: '20px', border: `1px solid ${theme === 'dark' ? '#495057' : '#dee2e6'}`, padding: '15px', borderRadius: '8px' },
         optionLabel: { display: 'block', padding: '10px', border: `1px solid ${theme === 'dark' ? '#495057' : '#dee2e6'}`, borderRadius: '5px', marginBottom: '5px', cursor: 'pointer' },
         score: { fontSize: '24px', fontWeight: 'bold', marginTop: '20px' },
@@ -178,9 +126,7 @@ function QuizHome() {
     return (
         <div style={styles.container}>
             <h1>SkillQuiz</h1>
-
             {questions.length === 0 ? (
-                // --- SETUP VIEW ---
                 <div>
                     <h2>Setup Your Quiz</h2>
                     <div style={styles.disclaimer}>
@@ -208,12 +154,7 @@ function QuizHome() {
                         </div>
                         <div style={{flex: 1}}>
                             <label style={{display: 'block', marginBottom: '5px'}}>Questions:</label>
-                            <input
-                                type="number"
-                                value={questionCount}
-                                onChange={(e) => setQuestionCount(Math.max(1, Math.min(10, e.target.value)))} // Min 1, Max 10
-                                style={styles.input}
-                            />
+                            <input type="number" value={questionCount} onChange={(e) => setQuestionCount(Math.max(1, Math.min(10, e.target.value)))} style={styles.input} />
                         </div>
                     </div>
                     <button style={styles.button} onClick={handleFetch} disabled={loading}>
@@ -222,7 +163,6 @@ function QuizHome() {
                     {error && <p style={{color: 'red', marginTop: '10px'}}>{error}</p>}
                 </div>
             ) : (
-                // --- ACTIVE QUIZ VIEW ---
                 <div>
                     <h2>{topic} Quiz</h2>
                     {questions.map((q, idx) => (
@@ -230,11 +170,7 @@ function QuizHome() {
                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                                 <strong>Q{idx + 1}. {q.question}</strong>
                                 {!submitted && !hints[idx] && (
-                                    <button 
-                                        style={styles.hintButton} 
-                                        onClick={() => handleGetHint(idx)}
-                                        disabled={loadingHint === idx}
-                                    >
+                                    <button style={styles.hintButton} onClick={() => handleGetHint(idx)} disabled={loadingHint === idx}>
                                         {loadingHint === idx ? '...' : 'Get Hint'}
                                     </button>
                                 )}
@@ -255,11 +191,9 @@ function QuizHome() {
                             )}
                         </div>
                     ))}
-                    
                     {!submitted && (
                         <button style={{...styles.button, width: 'auto'}} onClick={handleSubmit}>Submit Quiz</button>
                     )}
-
                     {submitted && (
                         <div>
                             <h3 style={styles.score}>Your Final Score: {score}</h3>
