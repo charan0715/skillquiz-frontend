@@ -1,22 +1,20 @@
 import React, { createContext, useState, useEffect } from 'react';
-import axios from 'axios';
+// We now import our centralized api instance
+import api from '../api/axiosConfig';
 
-// 1. Create the context
 export const AuthContext = createContext();
 
-// 2. Create the provider component
 export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(localStorage.getItem('token'));
     const [user, setUser] = useState(null);
+    // This new state will prevent the app from rendering until we've checked for a token
     const [loading, setLoading] = useState(true);
 
-    // Set the authorization header for all axios requests when token changes
     useEffect(() => {
         if (token) {
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            // Set the token as a default header for all future api requests
+            api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             localStorage.setItem('token', token);
-            // Here you could fetch user data if you have a /me endpoint
-            // For now, we'll just decode the token (simple way)
             try {
                 const decodedUser = JSON.parse(atob(token.split('.')[1]));
                 setUser({ username: decodedUser.username });
@@ -25,10 +23,11 @@ export const AuthProvider = ({ children }) => {
                 setUser(null);
             }
         } else {
-            delete axios.defaults.headers.common['Authorization'];
+            delete api.defaults.headers.common['Authorization'];
             localStorage.removeItem('token');
             setUser(null);
         }
+        // Once the check is complete, we can allow the app to render
         setLoading(false);
     }, [token]);
 
@@ -40,18 +39,18 @@ export const AuthProvider = ({ children }) => {
         setToken(null);
     };
 
-    // The value provided to consuming components
     const value = {
         token,
         user,
         login,
         logout,
-        isAuthenticated: !!token, // a boolean to easily check if logged in
+        isAuthenticated: !!token,
     };
 
-    // Don't render children until we've checked for a token
+    // While the initial token check is happening, we show a loading message.
+    // This prevents any other component from making an unauthorized API call.
     if (loading) {
-        return <div>Loading...</div>;
+        return <div>Loading Application...</div>;
     }
 
     return (
