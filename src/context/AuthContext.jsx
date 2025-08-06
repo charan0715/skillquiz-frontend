@@ -1,5 +1,4 @@
 import React, { createContext, useState, useEffect } from 'react';
-// We now import our centralized api instance
 import api from '../api/axiosConfig';
 
 export const AuthContext = createContext();
@@ -7,17 +6,19 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(localStorage.getItem('token'));
     const [user, setUser] = useState(null);
-    // This new state will prevent the app from rendering until we've checked for a token
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (token) {
-            // Set the token as a default header for all future api requests
             api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             localStorage.setItem('token', token);
             try {
+                // Decode the entire user payload from the token, including the new isAdmin flag
                 const decodedUser = JSON.parse(atob(token.split('.')[1]));
-                setUser({ username: decodedUser.username });
+                setUser({ 
+                    username: decodedUser.username, 
+                    isAdmin: decodedUser.isAdmin // Store the isAdmin status
+                });
             } catch (e) {
                 console.error("Failed to decode token", e);
                 setUser(null);
@@ -27,7 +28,6 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('token');
             setUser(null);
         }
-        // Once the check is complete, we can allow the app to render
         setLoading(false);
     }, [token]);
 
@@ -47,8 +47,6 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated: !!token,
     };
 
-    // While the initial token check is happening, we show a loading message.
-    // This prevents any other component from making an unauthorized API call.
     if (loading) {
         return <div>Loading Application...</div>;
     }
