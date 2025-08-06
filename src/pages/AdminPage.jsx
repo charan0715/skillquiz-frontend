@@ -9,6 +9,7 @@ function AdminPage() {
     const [error, setError] = useState('');
     const { theme } = useContext(ThemeContext);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [searchTerm, setSearchTerm] = useState(''); // New state for the search term
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -33,6 +34,11 @@ function AdminPage() {
         fetchFullData();
     }, []);
 
+    // Filter scores based on the search term
+    const filteredScores = allScores.filter(score =>
+        score.username.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     // (Styles are mostly the same, with minor adjustments)
     const styles = {
         container: { padding: isMobile ? '15px' : '30px', maxWidth: '1000px', margin: '20px auto', backgroundColor: theme === 'dark' ? '#212529' : '#f8f9fa', border: `1px solid ${theme === 'dark' ? '#495057' : '#dee2e6'}`, borderRadius: '8px' },
@@ -40,7 +46,17 @@ function AdminPage() {
         tableContainer: { overflowX: 'auto' },
         scoreTable: { width: '100%', borderCollapse: 'collapse', marginTop: '20px', },
         tableHeader: { background: theme === 'dark' ? '#343a40' : '#e9ecef', padding: '10px', textAlign: 'left', whiteSpace: 'nowrap' },
-        tableCell: { padding: '10px', borderBottom: `1px solid ${theme === 'dark' ? '#495057' : '#dee2e6'}`, whiteSpace: 'nowrap' }
+        tableCell: { padding: '10px', borderBottom: `1px solid ${theme === 'dark' ? '#495057' : '#dee2e6'}`, whiteSpace: 'nowrap' },
+        searchInput: {
+            width: '100%',
+            maxWidth: '400px',
+            padding: '8px 12px',
+            margin: '20px 0',
+            borderRadius: '5px',
+            border: `1px solid ${theme === 'dark' ? '#495057' : '#ced4da'}`,
+            backgroundColor: theme === 'dark' ? '#343a40' : '#fff',
+            color: theme === 'dark' ? '#f8f9fa' : '#212529'
+        }
     };
 
     if (loading) return <div style={styles.container}>Loading all user data...</div>;
@@ -50,6 +66,14 @@ function AdminPage() {
         <div style={styles.container}>
             <h2 style={styles.title}>Admin Dashboard: All User Scores</h2>
             
+            <input
+                type="text"
+                placeholder="Search by username..."
+                style={styles.searchInput}
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+            />
+
             <div style={styles.tableContainer}>
                 <table style={styles.scoreTable}>
                     <thead>
@@ -61,7 +85,7 @@ function AdminPage() {
                         </tr>
                     </thead>
                     <tbody>
-                        {allScores.length > 0 ? allScores.map((item) => (
+                        {filteredScores.length > 0 ? filteredScores.map((item) => (
                             <tr key={item.id}>
                                 <td style={styles.tableCell}>{item.username}</td>
                                 <td style={styles.tableCell}>{item.topic}</td>
@@ -70,7 +94,7 @@ function AdminPage() {
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan="4" style={{...styles.tableCell, textAlign: 'center'}}>No scores have been recorded yet.</td>
+                                <td colSpan="4" style={{...styles.tableCell, textAlign: 'center'}}>No scores found for this user.</td>
                             </tr>
                         )}
                     </tbody>
