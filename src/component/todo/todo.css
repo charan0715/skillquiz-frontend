@@ -1,0 +1,13 @@
+.mainbg{
+    background-image:linear-gradient(rgb(178, 14, 14),rgb(225, 99, 99));
+    height:100vh;
+}
+.addbuton{
+    height:50px;
+    width:50px;
+    border-radius:20px;
+    background-color:rgb(52, 110, 202);
+    color:white;
+    cursor: pointer;
+    border-width:0px;
+}

@@ -1,0 +1,30 @@
+.mainbg{
+    background-color: rgb(17, 17, 76);
+    height: 100vh;
+    align-items: center;
+}
+.counterhead{
+    color: aliceblue;
+    font-size:50px;
+    font-family: 'Courier New', Courier, monospace;
+    text-align: center;
+    padding-top:15px;
+    
+}
+.innerbg{
+    background-color: azure;
+    height:60vh;
+    width:60vw;
+    border-color:white;
+    border-radius:20px;
+    
+}
+.fx{
+    height:50px;
+    width:100px;
+    background-color:rgb(199, 195, 195);
+    color:black;
+    border-radius:15px;
+    border-width:0px;
+    cursor: pointer;
+}
